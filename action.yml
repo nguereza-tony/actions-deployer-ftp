@@ -1,5 +1,5 @@
 name: "File Deployer (FTP/SFTP)"
-description: "Fast and customizable deployment with parallel connections and proxy support. Deploy only changed files or do full sync."
+description: "Fast and customizable deployment with parallel connections. Deploy only changed files or do full sync."
 branding:
   icon: "upload"  
   color: "black"
@@ -29,27 +29,6 @@ inputs:
   ssh-private-key:
     description: "SSH private key of user"
     required: false
-  proxy:
-    description: "Enable proxy for FTP connection (true, false)"
-    required: true
-    default: false
-  proxy-host:
-    description: "Proxy host"
-    required: false
-  proxy-port:
-    description: "Proxy port"
-    required: false
-    default: 22
-  proxy-forwarding-port:
-    description: "Proxy forwarding port"
-    required: false
-    default: 1080
-  proxy-user:
-    description: "Proxy username"
-    required: false
-  proxy-private-key:
-    description: "Proxy SSH private key of user"
-    required: false
   local-path:
     description: "Local path to repository"
     required: true
@@ -62,7 +41,7 @@ inputs:
     description: "File synchronization (delta, full)"
     required: true
     default: "delta"
-  sync-delta-excludes:
+  excludes:
     description: "Files to exclude from delta sync"
     required: false
   ssh-options:
@@ -113,13 +92,6 @@ runs:
           input_remote_password="dummypassword"
         fi
 
-        input_proxy="${{inputs.proxy}}"
-
-        proxy_cmd=""
-        if [ "${input_proxy}" == "true" ]; then
-          proxy_cmd="proxychains"
-        fi
-
         input_sync=${{inputs.sync}}
         if [ "${{github.event_name}}" == "workflow_dispatch" ] && [ -n "${{github.event.inputs.sync}}" ]; then
           input_sync=${{github.event.inputs.sync}}
@@ -163,7 +135,7 @@ runs:
           apt_quiet=""
         fi
 
-        sudo apt-get ${apt_quiet} update && sudo apt-get ${apt_quiet} --no-install-recommends --yes install lftp ${proxy_cmd}
+        sudo apt-get ${apt_quiet} update && sudo apt-get ${apt_quiet} --no-install-recommends --yes install lftp
 
         echo "::endgroup::"
 
@@ -184,26 +156,6 @@ runs:
         if [ "${{inputs.protocol}}" == "sftp" ] && [ "${{inputs.ssh-private-key}}" != "" ]; then
           key_ssh=~/ssh_private_key
           echo "${{inputs.ssh-private-key}}" > ${key_ssh} && chmod 600 ${key_ssh} && echo "File created: ${key_ssh}" && show_hr
-        fi
-
-        if [ "${input_proxy}" == "true" ]; then
-          if [ "${{inputs.proxy-private-key}}" != "" ]; then
-            key_proxy=~/proxy_private_key
-            echo "${{inputs.proxy-private-key}}" > ${key_proxy} && chmod 600 ${key_proxy} && echo "File created: ${key_proxy}" && show_hr
-
-            config_proxychains=~/.proxychains/proxychains.conf
-            mkdir ~/.proxychains && echo "strict_chain
-            quiet_mode
-            tcp_read_time_out 15000
-            tcp_connect_time_out 10000
-            [ProxyList]
-            socks5 127.0.0.1 ${{inputs.proxy-forwarding-port}}" > ${config_proxychains} && echo "File created: ${config_proxychains}"
-            [ "${{inputs.debug}}" == "true" ] && cat ${config_proxychains}
-            show_hr
-          else
-            input_proxy="false"
-            echo "::warning::Invalid input 'proxy-private-key'. Skipping proxy connection."
-          fi
         fi
 
         echo "debug $([ "${{inputs.debug}}" == "true" ] && echo "9" || echo "false")
@@ -233,28 +185,6 @@ runs:
         [ "${{inputs.debug}}" == "true" ] && cat ~/.lftprc
 
         echo "::endgroup::"
-
-
-
-        if [ "${input_proxy}" == "true" ]; then
-          echo "::group::Setup proxy"
-
-          if [ "${{inputs.proxy-user}}" != "" ] && [ "${{inputs.proxy-host}}" != "" ]; then
-            if ssh -A -D ${{inputs.proxy-forwarding-port}} -f -N -p ${{inputs.proxy-port}} -i ~/proxy_private_key ${{inputs.proxy-user}}@${{inputs.proxy-host}}; then
-              echo "Proxy connected" && show_hr && echo "Proxy IP address: $(${proxy_cmd} curl --max-time 10 --show-error --silent "http://checkip.amazonaws.com/")"
-            else
-              echo "::error::Proxy connection failed."
-              exit 1
-            fi
-          else
-            input_proxy="false"
-            echo "::warning::Invalid input 'proxy-user', 'proxy-host'. Skipping proxy connection."
-          fi
-
-          echo "::endgroup::"
-        fi
-
-
 
         echo "::group::Prepare files"
 
@@ -289,8 +219,8 @@ runs:
           echo "Previous Revision: https://github.com/${{github.repository}}/commit/${git_previous_commit}" && show_hr
 
           if git cat-file -t ${git_previous_commit} &>/dev/null; then
-            git diff --diff-filter=ACMRT --name-only ${git_previous_commit}..${{github.sha}} -- ${local_path_unslash} ':!/.git*' ${{inputs.sync-delta-excludes}} > ~/files_to_upload
-            git diff-tree --diff-filter=D --name-only -t ${git_previous_commit}..${{github.sha}} -- ${local_path_unslash} ':!/.git*' ${{inputs.sync-delta-excludes}} > ~/files_to_delete
+            git diff --diff-filter=ACMRT --name-only ${git_previous_commit}..${{github.sha}} -- ${local_path_unslash} ':!/.git*' ${{inputs.excludes}} > ~/files_to_upload
+            git diff-tree --diff-filter=D --name-only -t ${git_previous_commit}..${{github.sha}} -- ${local_path_unslash} ':!/.git*' ${{inputs.excludes}} > ~/files_to_delete
 
             sed --in-place --regexp-extended "s#(.*)#realpath --canonicalize-missing --relative-to=$local_path_unslash \1#e" ~/files_to_upload
             sed --in-place --regexp-extended "s#(.*)#realpath --canonicalize-missing --relative-to=$local_path_unslash \1#e" ~/files_to_delete
@@ -320,15 +250,16 @@ runs:
         touch "${local_path_slash}.deploy-running"
 
         if [ "${input_sync}" == "full" ]; then
-          ${proxy_cmd} lftp -c "put -O \"${remote_path_unslash}\" \"${local_path_slash}.deploy-running\";
+          lftp -c "put -O \"${remote_path_unslash}\" \"${local_path_slash}.deploy-running\";
             mirror --exclude-glob=.git*/ --max-errors=10 --reverse ${{inputs.ftp-mirror-options}} ${local_path_unslash} ${remote_path_unslash};
             rm -f \"${remote_path_slash}.deploy-running\";
             ${{inputs.ftp-post-sync-commands}}"
         else
-          ${proxy_cmd} lftp -c "lcd \"${local_path_unslash}\";
-            put -O \"${remote_path_unslash}\" .deploy-running;
-            mput -d -O \"${remote_path_unslash}\" .deploy-revision $(awk '{ printf "\"%s\" ", $0 }' ~/files_to_upload);
-            rm -rf \"${remote_path_slash}.deploy-check\" $(awk -v REMOTEPATH=\"${remote_path_slash}\" '{ printf "\"%s%s\" ", REMOTEPATH, $0 }' ~/files_to_delete);
+          lftp -c "lcd \"${local_path_unslash}\";
+            cd \"${remote_path_slash}\";
+            put .deploy-running;
+            mput -d .deploy-revision $(awk '{ printf "\"%s\" ", $0 }' ~/files_to_upload);
+            rm -rf .deploy-check $(awk '{ printf "\"%s\" ", $0 }' ~/files_to_delete);
             rm -f .deploy-running;
             ${{inputs.ftp-post-sync-commands}}"
         fi
@@ -339,9 +270,7 @@ runs:
 
         echo "::group::Cleanup"
 
-        [ "${input_proxy}" == "true" ] && sudo pkill ssh
-
-        rm --force --verbose ~/.netrc ~/proxy_private_key ~/ssh_private_key
+        rm --force --verbose ~/.netrc ~/ssh_private_key
 
         echo "::endgroup::"
 
