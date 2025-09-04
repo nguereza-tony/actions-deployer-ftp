@@ -160,6 +160,7 @@ runs:
 
         echo "debug $([ "${{inputs.debug}}" == "true" ] && echo "9" || echo "false")
         set cmd:trace $([ "${{inputs.debug}}" == "true" ] && echo "true" || echo "false")
+        set cmd:verbose $([ "${{inputs.debug}}" == "true" ] && echo "yes" || echo "no")
         set ftp:ssl-protect-data true
         set ftp:sync-mode false
         set log:enabled/xfer true
