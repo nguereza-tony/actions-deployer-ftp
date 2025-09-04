@@ -266,8 +266,6 @@ runs:
 
         echo "::endgroup::"
 
-
-
         echo "::group::Cleanup"
 
         rm --force --verbose ~/.netrc ~/ssh_private_key
