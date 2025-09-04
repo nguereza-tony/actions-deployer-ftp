@@ -79,13 +79,13 @@ jobs:
 
 | Name                   | Required             | Default | Description                                   |
 |------------------------|----------------------|---------|-----------------------------------------------|
-| protocol        | yes                  | sftp    | Remote file transfer protocol (ftp, sftp)     |
+| protocol        | yes                  | sftp    | Remote file transfer protocol (ftp, sftp)            |
 | host                   | yes                  |         | Remote host                                   |
 | port                   | yes                  | 22      | Remote port                                   |
 | user                   | yes                  |         | FTP/SSH username                              |
 | password               | no                   |         | FTP/SSH password                              |
 | ssh-private-key        | no                   |         | SSH private key of user                       |
-| parallel               | no                   | 3       | Parallel upload count (default: 3)             |
+| parallel               | no                   | 3       | Parallel upload count (default: 3)            |
 | proxy                  | yes                  | false   | Enable proxy for FTP connection (true, false) |
 | proxy-host             | yes (if proxy: true) |         | Proxy host                                    |
 | proxy-port             | yes (if proxy: true) | 22      | Proxy port                                    |
@@ -93,7 +93,7 @@ jobs:
 | proxy-user             | yes (if proxy: true) |         | Proxy username                                |
 | proxy-private-key      | yes (if proxy: true) |         | Proxy SSH private key of user                 |
 | local-path             | yes                  | .       | Local path to repository                      |
-| remote-path            | yes                  | .       | Remote path on host (should be absolute)      |
+| remote-path            | yes                  | .       | Remote path on host                           |
 | sync                   | yes                  | delta   | File synchronization (delta, full)            |
 | sync-delta-excludes    | no                   |         | Files to exclude from delta sync              |
 | ssh-options            | no                   |         | Additional arguments for SSH client           |
