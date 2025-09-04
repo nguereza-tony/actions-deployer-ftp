@@ -259,7 +259,7 @@ runs:
             cd \"${remote_path_slash}\";
             put .deploy-running;
             mput -d .deploy-revision $(awk '{ printf "\"%s\" ", $0 }' ~/files_to_upload);
-            !rm -rf .deploy-check $(awk '{ printf "\"%s\" ", $0 }' ~/files_to_delete);
+            rm -r -f .deploy-check $(awk '{ printf "\"%s\" ", $0 }' ~/files_to_delete);
             rm -f .deploy-running;
             ${{inputs.ftp-post-sync-commands}}"
         fi
