@@ -100,8 +100,6 @@ jobs:
 | ftp-options            | no                   |         | Additional arguments for FTP client           |
 | ftp-mirror-options     | no                   |         | Additional arguments for mirroring            |
 | ftp-post-sync-commands | no                   |         | Additionnal FTP command to run after sync     |
-| webhook                | no                   |         | Send webhook event notifications              |
-| artifacts              | no                   | false   | Upload logs/files to artifacts (true, false)  |
 | debug                  | no                   | false   | Enable debug information (true, false)        |
 
 ### Notes
@@ -124,40 +122,5 @@ jobs:
       !touch watched_file
       put watched_file
     ```
-- Setting `webhook` to a URL will send start and finish event notifications in JSON format
-  - start event payload:
-  ```
-  {
-    "timestamp": "1234567890",
-    "status": "start",
-    "repository": "owner/repository",
-    "workflow": "workflow name",
-    "job": "deploy",
-    "run_id": "1234567890",
-    "ref": "refs/heads/master",
-    "event_name": "push",
-    "actor": "username",
-    "message": "commit message",
-    "revision": "da39a3ee5e6b4b0d3255bfef95601890afd80709"
-  }
-  ```
-  - finish event payload:
-  ```
-  {
-    "timestamp": "1234567890",
-    "status": "finish",
-    "repository": "owner/repository",
-    "workflow": "workflow name",
-    "job": "deploy",
-    "run_id": "1234567890",
-    "ref": "refs/heads/master",
-    "event_name": "push",
-    "actor": "username",
-    "message": "commit message",
-    "revision": "da39a3ee5e6b4b0d3255bfef95601890afd80709"
-  }
-  ```
-- Enabling `artifacts` will upload transfer log and modified files to artifacts
-  - Modified files are only added for delta file synchronization
 - Enabling `debug` option will output useful context, inputs, configuration file contents and transfer logs to help debug each step
 - It is strongly recommended to use [Encrypted Secrets](https://docs.github.com/en/actions/reference/encrypted-secrets) to store sensitive data like passwords and private keys
