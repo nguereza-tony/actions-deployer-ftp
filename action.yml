@@ -77,12 +77,6 @@ inputs:
   ftp-post-sync-commands:
     description: "Additional ftp commands to run after synchronization (lftp)"
     required: false
-  webhook:
-    description: "Send webhook event notifications"
-    required: false
-  artifacts:
-    description: "Upload logs to artifacts"
-    required: false
   debug:
     description: "Enable debug information (true, false)"
     required: false
@@ -98,27 +92,6 @@ runs:
         function show_hr() {
           printf '%.s_' {1..100} && echo ""
         }
-
-        function send_webhook() {
-          local status="$1"
-          local post_data=$(jq --null-input \
-          --arg timestamp `date +%s` \
-          --arg status "${status}" \
-          --arg repository "${{ github.repository }}" \
-          --arg workflow "${{ github.workflow }}" \
-          --arg job "${{ github.job }}" \
-          --arg run_id "${{ github.run_id }}" \
-          --arg ref "${{ github.ref }}" \
-          --arg event_name "${{ github.event_name }}" \
-          --arg actor "${{ github.actor }}" \
-          --arg message "${{ github.event.head_commit.message }}" \
-          --arg revision "${{ github.sha }}" \
-          '{"timestamp": $timestamp, "status": $status, "repository": $repository, "workflow": $workflow, "job": $job, "run_id": $run_id, "ref": $ref, "event_name": $event_name, "actor": $actor, "message": $message, "revision": $revision}')
-
-          curl --data "${post_data}" --header "Content-Type: application/json" --max-time 30 --show-error --silent --user-agent "GitHub Workflow" "${{inputs.webhook}}"
-        }
-
-        [ "${{inputs.webhook}}" != "" ] && echo "Webhook notification (start): $(send_webhook "start")"
 
         echo "Check repository"
 
@@ -238,7 +211,6 @@ runs:
         set ftp:ssl-protect-data true
         set ftp:sync-mode false
         set log:enabled/xfer true
-        set log:file/xfer ~/transfer_log.txt
         set log:show-time/xfer false
         set mirror:overwrite true
         set mirror:parallel-transfer-count ${{inputs.parallel}}
@@ -326,16 +298,12 @@ runs:
             echo "File created: ~/files_to_upload" && cat ~/files_to_upload && show_hr
             echo "File created: ~/files_to_delete" && cat ~/files_to_delete && show_hr
 
-            if [ "${{inputs.artifacts}}" == "true" ]; then
-              echo "Copy transfer artifacts" && mkdir ~/transfer_files && rsync --verbose --files-from=$HOME/files_to_upload ${local_path_slash} ~/transfer_files/
-            fi
           else
             echo "::warning::Invalid base commit for delta synchronization: ${git_previous_commit}. Please ignore if this is an initial commit or newly created branch."
           fi
         fi
 
         echo "::endgroup::"
-
 
 
         echo "::group::Transfer files"
@@ -358,14 +326,12 @@ runs:
             ${{inputs.ftp-post-sync-commands}}"
         else
           ${proxy_cmd} lftp -c "lcd \"${local_path_unslash}\";
-            put -O \"${remote_path_unslash}\" \"${local_path_slash}.deploy-running\";
+            put -O \"${remote_path_unslash}\" .deploy-running;
             mput -d -O \"${remote_path_unslash}\" .deploy-revision $(awk '{ printf "\"%s\" ", $0 }' ~/files_to_upload);
             rm -rf .deploy-check $(awk '{ printf "\"%s%s\" ", $0 }' ~/files_to_delete);
             rm -f .deploy-running;
             ${{inputs.ftp-post-sync-commands}}"
         fi
-
-        [ -f ~/transfer_log.txt ] && cat ~/transfer_log.txt
 
         echo "::endgroup::"
 
@@ -377,18 +343,6 @@ runs:
 
         rm --force --verbose ~/.netrc ~/proxy_private_key ~/ssh_private_key
 
-        [ "${{inputs.artifacts}}" != "true" ] && rm --force --verbose ~/transfer_log.txt
-
-        [ "${{inputs.webhook}}" != "" ] && echo "Webhook notification (finish): $(send_webhook "finish")"
-
         echo "::endgroup::"
 
         exit 0
-    - name: "Upload artifacts"
-      uses: actions/upload-artifact@v4
-      with:
-        name: "transfer_artifacts"
-        path: |
-          ~/transfer_log.txt
-          ~/transfer_files
-        if-no-files-found: ignore
