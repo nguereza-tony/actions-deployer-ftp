@@ -1,6 +1,6 @@
 # File Deployer (FTP/SFTP)
 
-Fast and customizable deployment with parallel connections and proxy support. Deploy only changed files or do full sync/mirror of repository content.
+Fast and customizable deployment with parallel connections. Deploy only changed files or do full sync/mirror of repository content.
 
 This is a composite GitHub Action (Linux runner) for deploying repository content to remote server.
 
@@ -13,7 +13,6 @@ This is the fork from [milanmk/actions-file-deployer](https://github.com/milanmk
 - Delta file synchronization for faster deployment of only changed files since last revision
 - Mirroring feature to copy entire file and folder structure of repository content
 - Optimized for faster file transfers via parallel connections
-- Connect to remote server via [SOCKS proxy](https://en.wikipedia.org/wiki/SOCKS) using [SSH tunneling](https://www.ssh.com/academy/ssh/tunneling) to bypass firewall / NAT / IP whitelist / VPC
 - Uses [composite action](https://docs.github.com/en/actions/creating-actions/about-actions#types-of-actions) without Docker container for faster deployments and shorter run time
 - Pass additional command arguments to SSH and FTP client for custom configurations and settings
 - Step runs messages categorized nicely in log groups
@@ -79,23 +78,17 @@ jobs:
 
 | Name                   | Required             | Default | Description                                   |
 |------------------------|----------------------|---------|-----------------------------------------------|
-| protocol        | yes                  | sftp    | Remote file transfer protocol (ftp, sftp)            |
+| protocol               | yes                  | sftp    | Remote file transfer protocol (ftp, sftp)     |
 | host                   | yes                  |         | Remote host                                   |
 | port                   | yes                  | 22      | Remote port                                   |
 | user                   | yes                  |         | FTP/SSH username                              |
 | password               | no                   |         | FTP/SSH password                              |
 | ssh-private-key        | no                   |         | SSH private key of user                       |
 | parallel               | no                   | 3       | Parallel upload count (default: 3)            |
-| proxy                  | yes                  | false   | Enable proxy for FTP connection (true, false) |
-| proxy-host             | yes (if proxy: true) |         | Proxy host                                    |
-| proxy-port             | yes (if proxy: true) | 22      | Proxy port                                    |
-| proxy-forwarding-port  | yes (if proxy: true) | 1080    | Proxy forwarding port                         |
-| proxy-user             | yes (if proxy: true) |         | Proxy username                                |
-| proxy-private-key      | yes (if proxy: true) |         | Proxy SSH private key of user                 |
 | local-path             | yes                  | .       | Local path to repository                      |
 | remote-path            | yes                  | .       | Remote path on host                           |
 | sync                   | yes                  | delta   | File synchronization (delta, full)            |
-| sync-delta-excludes    | no                   |         | Files to exclude from delta sync              |
+| excludes               | no                   |         | Files to exclude from delta sync              |
 | ssh-options            | no                   |         | Additional arguments for SSH client           |
 | ftp-options            | no                   |         | Additional arguments for FTP client           |
 | ftp-mirror-options     | no                   |         | Additional arguments for mirroring            |
@@ -114,7 +107,7 @@ jobs:
   - `full`: Transfer all files (upload)
     - Does not delete files on remote host
     - Default glob exclude pattern is `.git*/`
-- `sync-delta-excludes` accepts [pathspec](https://git-scm.com/docs/gitglossary#Documentation/gitglossary.txt-aiddefpathspecapathspec) patterns to exclude files from delta sync.
+- `excludes` accepts [pathspec](https://git-scm.com/docs/gitglossary#Documentation/gitglossary.txt-aiddefpathspecapathspec) patterns to exclude files from delta sync.
 - For `ftp-options` and `ftp-mirror-options` command arguments please refer to [LFTP manual](https://lftp.yar.ru/lftp-man.html)
 - `ftp-post-sync-commands` can be used to run additional LFTP commands after the synchronization. For example, to upload a file watched by a process manager on the server in order to restart a deamon:
     ```
