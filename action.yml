@@ -258,7 +258,7 @@ runs:
           lftp -c "lcd \"${local_path_unslash}\";
             cd \"${remote_path_slash}\";
             put .deploy-running;
-            mput -d .deploy-revision $(awk '{ printf "\"%s\" ", $0 }' ~/files_to_upload);
+            mput .deploy-revision $(awk '{ printf "\"%s\" ", $0 }' ~/files_to_upload);
             rm -rf .deploy-check $(awk '{ printf "\"%s\" ", $0 }' ~/files_to_delete);
             rm -f .deploy-running;
             ${{inputs.ftp-post-sync-commands}}"
