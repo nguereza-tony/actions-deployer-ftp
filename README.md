@@ -5,7 +5,7 @@ Fast and customizable deployment with parallel connections and proxy support. De
 This is a composite GitHub Action (Linux runner) for deploying repository content to remote server.
 
 ## Fork
-This is the fork from [nguereza-tony/actions-deployer-ftp](https://github.com/nguereza-tony/actions-deployer-ftp)
+This is the fork from [milanmk/actions-file-deployer](https://github.com/milanmk/actions-file-deployer)
 
 ## Features
 - Support for FTP and SFTP (SSH) protocols
@@ -30,7 +30,7 @@ This is the fork from [nguereza-tony/actions-deployer-ftp](https://github.com/ng
 - name: "Deploy"
   uses: nguereza-tony/actions-deployer-ftp@master
   with:
-    remote-protocol: "sftp"
+    protocol: "sftp"
     host: "ftp.example.com"
     user: "username"
     ssh-private-key: ${{ secrets.DEPLOY_PRIVATE_KEY }}
@@ -68,7 +68,7 @@ jobs:
       - name: "Deploy"
         uses: nguereza-tony/actions-deployer-ftp@master
         with:
-          remote-protocol: "sftp"
+          protocol: "sftp"
           host: "ftp.example.com"
           user: "username"
           ssh-private-key: ${{ secrets.DEPLOY_PRIVATE_KEY }}
@@ -79,7 +79,7 @@ jobs:
 
 | Name                   | Required             | Default | Description                                   |
 |------------------------|----------------------|---------|-----------------------------------------------|
-| remote-protocol        | yes                  | sftp    | Remote file transfer protocol (ftp, sftp)     |
+| protocol        | yes                  | sftp    | Remote file transfer protocol (ftp, sftp)     |
 | host                   | yes                  |         | Remote host                                   |
 | port                   | yes                  | 22      | Remote port                                   |
 | user                   | yes                  |         | FTP/SSH username                              |
